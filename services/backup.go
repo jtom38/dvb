@@ -23,8 +23,7 @@ func NewBackupClient() BackupClient {
 }
 
 // This will return the location of the new file on disk if it was successful
-func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domain.ContainerConfig) (domain.RunDetails, error) {
-
+func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domain.ContainerDocker) (domain.RunDetails, error) {
 	client := NewDockerCliClient()
 
 	log.Printf("> Checking for %v", config.Name)
@@ -46,10 +45,11 @@ func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domai
 	if err != nil {
 		return details, err
 	}
-	details.Tar.Directory = tarDirectory
+	details.BackupDirectory = tarDirectory
 
 	backupName := c.GetValidFileName(config.Tar, tarDirectory)
-	details.BackupName = backupName
+	details.BackupFileName = backupName
+	details.BackupExtension = ".tar"
 
 	log.Printf("Backup will generate as '%v'", backupName)
 

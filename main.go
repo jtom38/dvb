@@ -21,18 +21,16 @@ func main() {
 	// load the config file into memory
 	config := MustLoadConfig(flagConfigPath)
 
-	for _, container := range config.Containers {
-		ProcessContainers(config, container)
+	for _, container := range config.Backup.Docker {
+		ProcessDockerContainers(config, container)
 	}
 }
 
-func ProcessContainers(config domain.Config, container domain.ContainerConfig,) error {
+func ProcessDockerContainers(config domain.Config, container domain.ContainerDocker,) error {
 	logs := domain.Logs{}
-	logs.Add("> The container backup has started.")
-
+	logs.Add("The container backup has started.")
 
 	details := domain.RunDetails{
-		ContainerConfig: &container,
 		ContainerName:   container.Name,
 	}
 
@@ -53,7 +51,7 @@ func ProcessContainers(config domain.Config, container domain.ContainerConfig,) 
 		SendAlert(config.Alert, logs)
 		return err
 	}
-	logs.Add(fmt.Sprintf("Backup was created. '%v.tar'", details.BackupName))
+	logs.Add(fmt.Sprintf("Backup was created. '%v.tar'", details.BackupFileName))
 
 	err = MoveFile(details, config.Destination)
 	if err != nil {
@@ -61,6 +59,7 @@ func ProcessContainers(config domain.Config, container domain.ContainerConfig,) 
 		SendAlert(config.Alert, logs)
 		return err
 	}
+	logs.Add("Backup was moved.")
 
 	// Check if we need to remove any old backups
 	if config.Destination.Retain.Days == 0 {
@@ -114,7 +113,7 @@ func ReviewStorageLocation(config domain.ConfigDest) error {
 func MoveFile(details domain.RunDetails, config domain.ConfigDest) error {
 	var err error
 	if config.Local.Path != "" {
-		local := services.NewMoveClient(details.BackupName, details.BackupPath, details.ContainerName, config.Local.Path)
+		local := services.NewMoveClient(details.BackupFileName, details.BackupPath, details.ContainerName, config.Local.Path)
 		err = local.Move()
 		if err != nil {
 			return err

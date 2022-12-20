@@ -111,8 +111,9 @@ type RetainClient struct {
 
 func NewRetainClient(config domain.ConfigDestLocal, containerName string, retainDays int) RetainClient {
 	return RetainClient{
-		config: config,
-		days:   retainDays,
+		config:        config,
+		days:          retainDays,
+		containerName: containerName,
 	}
 }
 
@@ -140,6 +141,7 @@ func (c RetainClient) Check(pattern string) error {
 
 	if files <= c.days {
 		log.Print("Not enough files in the directory to remove ")
+		return nil
 	}
 
 	// Find the oldest file to remove
@@ -200,7 +202,8 @@ func (c RetainClient) FindOldestFile(pattern string) (fs.FileInfo, error) {
 func (c RetainClient) CountFiles(pattern string) (int, error) {
 	found := 0
 
-	dir, err := os.ReadDir(filepath.Join(c.config.Path, c.containerName))
+	path := filepath.Join(c.config.Path, c.containerName)
+	dir, err := os.ReadDir(path)
 	if err != nil {
 		return found, err
 	}

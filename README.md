@@ -14,17 +14,19 @@ Docker Volume Backup is a cli tool I use to backup my data on my docker servers.
 ## Config
 
 ```yaml
-Containers:
-    # Name of the container
-  - Name: webdav-app-1
-    # Where inside your container is the data that needs to be backed up
-    Directory: /var/lib/dav
-    Tar:
-      # if $PWD is used, we convert this to your working directory as you expect.
-      Directory: $PWD
-      # {{date}} is replaced with a date code value 20221217
-      Pattern: webdav-data-{{date}}
-      Extension: tar
+Backup:
+  # This defines that the containers come from Docker
+  Docker:
+      # Name of the container
+    - Name: webdav-app-1
+      # Where inside your container is the data that needs to be backed up
+      Directory: /var/lib/dav
+      Tar:
+        # if $PWD is used, we convert this to your working directory as you expect.
+        Directory: $PWD
+        # {{date}} is replaced with a date code value 20221217
+        Pattern: webdav-data-{{date}}
+        Extension: tar
   
 # Once its backed up, what do we do with the file?
 # If you want to leave it in the current directory it was made, you don't need this block
@@ -38,13 +40,13 @@ Destination:
   Local: 
     # Defines what directory that it will move to.
     # The container name will be append to the path
-    Path: /Users/jamestombleson
+    Path: /mnt/nas/backups
 
 # If you want this to send you alerts, right now discord is only supported
 # If you don't want discord alerts, remove this block
 Alert:
   Discord:
-    Username: momo-monitor
+    Username: docker-server-backups
     Webhooks:
       - https://discord.com/api/webhooks/...
 

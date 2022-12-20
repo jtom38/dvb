@@ -2,21 +2,25 @@ package domain
 
 // This is the root yaml config that contains the information needed to operate
 type Config struct {
-	Containers  []ContainerConfig `yaml:"Containers"`
-	Alert       ConfigAlert       `yaml:"Alert,omitempty"`
-	Destination ConfigDest        `yaml:"Destination,omitempty"`
+	Backup      BackupConfig `yaml:"Backup"`
+	Alert       ConfigAlert  `yaml:"Alert,omitempty"`
+	Destination ConfigDest   `yaml:"Destination,omitempty"`
 }
 
-type ContainerConfig struct {
+type BackupConfig struct {
+	Docker []ContainerDocker `yaml:"Docker,omitempty"`
+}
+
+type ContainerDocker struct {
 	Name      string             `yaml:"Name"`
 	Directory string             `yaml:"Directory"`
 	Tar       ConfigContainerTar `yaml:"Tar"`
 }
 
 type ConfigContainerTar struct {
-	UseDate   bool   `yaml:"UseDate"`
-	Pattern   string `yaml:"Pattern"`
-	Directory string `yaml:"Directory"`
+	UseDate   bool   `yaml:"UseDate,omitempty"`
+	Pattern   string `yaml:"Pattern,omitempty"`
+	Directory string `yaml:"Directory,omitempty"`
 }
 
 type ConfigDest struct {
@@ -27,12 +31,12 @@ type ConfigDest struct {
 
 // Defines how long backups should be retained
 type ConfigRetain struct {
-	Days int `yaml:"Days"`
+	Days int `yaml:"Days,omitempty"`
 }
 
 // Defines where and how to move data
 type ConfigDestLocal struct {
-	Path string `yaml:"Path"`
+	Path string `yaml:"Path,omitempty"`
 }
 
 type ConfigDestSftp struct {

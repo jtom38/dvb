@@ -3,13 +3,14 @@ package domain
 import "fmt"
 
 type RunDetails struct {
-	*ContainerConfig
+	//*ContainerConfig
 	ContainerName       string
 	ContainerBackupPath string
-	//BackupDirectory     string
-	BackupName string
-	//BackupExtension     string
-	BackupPath string
+
+	BackupDirectory string
+	BackupFileName  string
+	BackupExtension string
+	BackupPath      string
 }
 
 type Logs struct {
@@ -17,9 +18,13 @@ type Logs struct {
 }
 
 func (c *Logs) Add(Message string) {
-	c.Message = append(c.Message, Message)
+	c.Message = append(c.Message, c.generateMessage(Message))
 }
 
 func (c *Logs) Error(err error) {
-	c.Message = append(c.Message, fmt.Sprintf("> Error: %v", err.Error()))
+	c.Message = append(c.Message, c.generateMessage(err.Error()))
+}
+
+func (c Logs) generateMessage(msg string) string {
+	return fmt.Sprintf("> %v", msg)
 }
