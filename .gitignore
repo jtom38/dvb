@@ -1,9 +1,14 @@
+config.yaml
+*.tar 
+Caddyfile
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+dvb
 
 # Test binary, built with `go test -c`
 *.test
