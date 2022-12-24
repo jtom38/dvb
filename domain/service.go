@@ -3,14 +3,31 @@ package domain
 import "fmt"
 
 type RunDetails struct {
-	//*ContainerConfig
 	ContainerName       string
 	ContainerBackupPath string
+	Backup              RunBackupDetails
+	Dest                RunDestDetails
+}
 
-	BackupDirectory string
-	BackupFileName  string
-	BackupExtension string
-	BackupPath      string
+type RunBackupDetails struct {
+	Directory             string
+	FileName              string
+	Extension             string
+	FileNameWithExtension string
+	FullFilePath          string
+}
+
+type RunDestDetails struct {
+	Local RunDetailsDestLocal
+}
+
+// This struct contains the information on where the local data
+type RunDetailsDestLocal struct {
+	Directory             string
+	FileName              string
+	Extension             string
+	FileNameWithExtension string
+	FullFilePath          string
 }
 
 type Logs struct {

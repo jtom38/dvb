@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/jtom38/dvb/domain"
 )
@@ -41,38 +41,38 @@ func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domai
 	log.Print("> Determining backup name")
 
 	// Check if we are going to dump into the working directory
-	tarDirectory, err := c.GetDirectoryPath(config.Tar.Directory)
-	if err != nil {
-		return details, err
-	}
-	details.BackupDirectory = tarDirectory
+	//tarDirectory, err := c.GetDirectoryPath(config.Tar.Directory)
+	//if err != nil {
+	//	return details, err
+	//}
+	//details.Backup.Directory = tarDirectory
 
-	backupName := c.GetValidFileName(config.Tar, tarDirectory)
-	details.BackupFileName = backupName
-	details.BackupExtension = ".tar"
+	//backupName := c.GetValidFileName(config.Tar, details.Backup.Directory)
+	//details.Backup.FileName = backupName
+	//details.Backup.Extension = ".tar"
 
-	log.Printf("Backup will generate as '%v'", backupName)
+	log.Printf("Backup will generate as '%v'", details.Backup.FileName)
 
 	// backup volume
 	log.Print("> Starting to backup the volume")
 	backedResults, err := client.BackupDockerVolume(BackupVolumeParams{
 		ContainerName:  config.Name,
-		BackupFolder:   tarDirectory,
-		BackupFilename: backupName,
+		BackupFolder:   details.Backup.Directory,
+		BackupFilename: details.Backup.FileName,
 		TargetFolder:   config.Directory,
 	})
 	if err != nil {
 		return details, errors.New(backedResults)
 	}
-
-	path := fmt.Sprintf("%v/%v.%v", tarDirectory, backupName, c.FileExtension)
+	
+	path := filepath.Join(details.Backup.Directory, details.Backup.FileNameWithExtension)
 	_, err = os.Stat(path)
 	if err != nil {
 		return details, err
 	}
 
 	// The file exists, so we will return the location we tested
-	details.BackupPath = path
+	details.Backup.FullFilePath = path
 
 	// start container
 	log.Print("> Starting container")
@@ -84,27 +84,27 @@ func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domai
 	return details, nil
 }
 
-func (c BackupClient) GetDirectoryPath(value string) (string, error) {
-	if value == "$PWD" {
-		workingDirectory, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
+//func (c BackupClient) GetDirectoryPath(value string) (string, error) {
+//	if value == "$PWD" {
+//		workingDirectory, err := os.Getwd()
+//		if err != nil {
+//			return "", err
+//		}
+//
+//		return workingDirectory, nil
+//	}
+//	return value, nil
+//}
 
-		return workingDirectory, nil
-	}
-	return value, nil
-}
-
-func (c BackupClient) ReplaceDatePlaceholder(pattern string) string {
-	backupName := pattern
-	todayString := time.Now().Format("20060102")
-	backupName = strings.ReplaceAll(backupName, "{{date}}", todayString)
-	return backupName
-}
+//func (c BackupClient) ReplaceDatePlaceholder(pattern string) string {
+//	backupName := pattern
+//	todayString := time.Now().Format("20060102")
+//	backupName = strings.ReplaceAll(backupName, "{{date}}", todayString)
+//	return backupName
+//}
 
 // This will update the filename if one already exists with a number appended
-func (c BackupClient) GetValidFileName(config domain.ConfigContainerTar, directory string) string {
+func (c BackupClient) GetValidFileName(config domain.ConfigContainerTar, directory string) (string, error) {
 	var tempName string
 	var t string
 
@@ -112,7 +112,11 @@ func (c BackupClient) GetValidFileName(config domain.ConfigContainerTar, directo
 	backupName := config.Pattern
 
 	if strings.Contains(config.Pattern, "{{date}}") {
-		backupName = c.ReplaceDatePlaceholder(config.Pattern)
+		backupName, err := ReplaceAllConfigVariables(config.Pattern)
+		if err != nil {
+			return backupName, err
+		}
+		//backupName = c.ReplaceDatePlaceholder(config.Pattern)
 		ogName = backupName
 	}
 
@@ -124,32 +128,11 @@ func (c BackupClient) GetValidFileName(config domain.ConfigContainerTar, directo
 
 		_, err := os.Stat(t)
 		if err != nil {
-			return backupName
+			return backupName, nil
 		}
 
 		backupName = fmt.Sprintf("%v.%v", ogName, i)
 		tempName = fmt.Sprintf("%v.%v", backupName, c.FileExtension)
-		t = fmt.Sprintf("%v/%v", directory, tempName)
-		i = i + 1
-	}
-}
-
-func GetValidFileName(directory, name, extension string) string {
-	var tempName string
-	var t string
-
-	i := 0
-	tempName = fmt.Sprintf("%v.%v", name, extension)
-	t = fmt.Sprintf("%v/%v", directory, tempName)
-
-	for {
-
-		_, err := os.Stat(t)
-		if err != nil {
-			return tempName
-		}
-
-		tempName = fmt.Sprintf("%v.%v.%v", name, i, extension)
 		t = fmt.Sprintf("%v/%v", directory, tempName)
 		i = i + 1
 	}

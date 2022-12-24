@@ -34,8 +34,15 @@ func ProcessDockerContainers(config domain.Config, container domain.ContainerDoc
 		ContainerName:   container.Name,
 	}
 
+	// Based on the destination path, lets figure out what we should name the file
+	recon := services.NewReconClient(config)
+	details, err := recon.DockerScout(container)
+	if err != nil {
+		return err
+	}
+
 	// TODO Review the storage location
-	err := ReviewStorageLocation(config.Destination)
+	err = ReviewStorageLocation(config.Destination)
 	if err != nil {
 		logs.Error(err)
 		SendAlert(config.Alert, logs)
@@ -51,7 +58,7 @@ func ProcessDockerContainers(config domain.Config, container domain.ContainerDoc
 		SendAlert(config.Alert, logs)
 		return err
 	}
-	logs.Add(fmt.Sprintf("Backup was created. '%v.tar'", details.BackupFileName))
+	logs.Add(fmt.Sprintf("Backup was created. '%v.tar'", details.Backup.FileName))
 
 	err = MoveFile(details, config.Destination)
 	if err != nil {
@@ -113,14 +120,14 @@ func ReviewStorageLocation(config domain.ConfigDest) error {
 func MoveFile(details domain.RunDetails, config domain.ConfigDest) error {
 	var err error
 	if config.Local.Path != "" {
-		local := services.NewMoveClient(details.BackupFileName, details.BackupPath, details.ContainerName, config.Local.Path)
+		local := services.NewMoveClient(details.Backup.FileName, details.Backup.FullFilePath, details.ContainerName, config.Local.Path)
 		err = local.Move()
 		if err != nil {
 			return err
 		}
 
 		// Remove the old file
-		err = os.Remove(details.BackupPath)
+		err = os.Remove(details.Backup.FullFilePath)
 		if err != nil {
 			return err
 		}
