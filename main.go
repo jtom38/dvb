@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -26,33 +25,25 @@ func main() {
 	}
 }
 
-func ProcessDockerContainers(config domain.Config, container domain.ContainerDocker,) error {
-	logs := domain.Logs{}
+func ProcessDockerContainers(config domain.Config, container domain.ContainerDocker) error {
+	logs := domain.NewLogs()
 	logs.Add("The container backup has started.")
 
 	details := domain.RunDetails{
-		ContainerName:   container.Name,
+		ContainerName: container.Name,
 	}
 
 	// Based on the destination path, lets figure out what we should name the file
 	recon := services.NewReconClient(config)
 	details, err := recon.DockerScout(container)
 	if err != nil {
-		return err
-	}
-
-	// TODO Review the storage location
-	err = ReviewStorageLocation(config.Destination)
-	if err != nil {
 		logs.Error(err)
-		SendAlert(config.Alert, logs)
 		return err
 	}
-	logs.Add(fmt.Sprintf("Was able to access '%v'", config.Destination.Local.Path))
 
 	// Start the backup process on the container
 	backupClient := services.NewBackupClient()
-	details, err = backupClient.BackupDockerVolume(details, container)
+	err = backupClient.BackupDockerVolume(details, container)
 	if err != nil {
 		logs.Error(err)
 		SendAlert(config.Alert, logs)
@@ -83,7 +74,7 @@ func ProcessDockerContainers(config domain.Config, container domain.ContainerDoc
 		SendAlert(config.Alert, logs)
 		return err
 	}
-	
+
 	logs.Add(fmt.Sprintf("No errors reported backing up '%v'", container.Name))
 	SendAlert(config.Alert, logs)
 	return nil
@@ -105,23 +96,11 @@ func MustLoadConfig(path string) domain.Config {
 	return config
 }
 
-func ReviewStorageLocation(config domain.ConfigDest) error {
-	if config.Local.Path != "" {
-		log.Printf("Moving backup to %v", config.Local.Path)
-		_, err := os.Stat(config.Local.Path)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func MoveFile(details domain.RunDetails, config domain.ConfigDest) error {
 	var err error
-	if config.Local.Path != "" {
+	if details.Dest.Local.Directory != "" {
 		local := services.NewMoveClient(details.Backup.FileName, details.Backup.FullFilePath, details.ContainerName, config.Local.Path)
-		err = local.Move()
+		err = local.Move(details)
 		if err != nil {
 			return err
 		}

@@ -14,7 +14,7 @@ func getConfig() domain.Config {
 		Directory: "/var/lib/dav",
 		Tar: domain.ConfigContainerTar{
 			Directory: "{{PWD}}",
-			Pattern:   "webdav-data-{{date}}",
+			Pattern:   "data-{{DATE}}",
 		},
 	})
 
@@ -27,7 +27,7 @@ func getConfig() domain.Config {
 				Days: 10,
 			},
 			Local: domain.ConfigDestLocal{
-				Path: "~",
+				Path: "{{USERDIR}}",
 			},
 		},
 	}
@@ -38,7 +38,7 @@ func getConfig() domain.Config {
 func TestReconNewBackupDetails(t *testing.T) {
 	config := getConfig()
 	c := services.NewReconClient(config)
-	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Tar.Directory)
+	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,14 +51,74 @@ func TestReconNewBackupDetails(t *testing.T) {
 func TestReconValidateBackupDetails(t *testing.T) {
 	config := getConfig()
 	c := services.NewReconClient(config)
-	details, err := c.NewBackupDetails(config.Backup.Docker[0].Tar.Directory)
+	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = c.ValidateBackupDetails(details)
+	err = c.ValidateBackupDetails(backupDetails)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestReconGetLocalDestDetails(t *testing.T) {
+	config := getConfig()
+
+	c := services.NewReconClient(config)
+	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = c.GetLocalDestDetails(services.LocalDetailsParam{
+		Container:     config.Backup.Docker[0],
+		BackupDetails: backupDetails,
+		DestLocal:     config.Destination.Local,
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestReconValidateLocalDestDetails(t *testing.T) {
+	config := getConfig()
+
+	c := services.NewReconClient(config)
+	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
 	if err != nil {
 		t.Error(err)
 	}
 
+	dest, err := c.GetLocalDestDetails(services.LocalDetailsParam{
+		Container:     config.Backup.Docker[0],
+		BackupDetails: backupDetails,
+		DestLocal:     config.Destination.Local,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = c.ValidateLocalDestDetails(dest)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestReconDockerScout(t *testing.T) {
+	config := getConfig()
+
+	c := services.NewReconClient(config)
+	details, err := c.DockerScout(config.Backup.Docker[0])
+	if err != nil {
+		t.Error(err)
+	}
+
+	if details.Backup.FullFilePath == "" {
+		t.Error("Backup.FullFilePath is missing")
+	}
+
+	if details.Dest.Local.FullFilePath == "" {
+		t.Error("Dest.Local.FullFilePath is missing")
+	}
 }

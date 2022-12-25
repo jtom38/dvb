@@ -1,6 +1,9 @@
 package domain
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type RunDetails struct {
 	ContainerName       string
@@ -10,7 +13,9 @@ type RunDetails struct {
 }
 
 type RunBackupDetails struct {
-	Directory             string
+	TargetDirectory       string
+	LocalDirectory        string
+	ServiceName           string
 	FileName              string
 	Extension             string
 	FileNameWithExtension string
@@ -34,14 +39,22 @@ type Logs struct {
 	Message []string
 }
 
+func NewLogs() Logs {
+	c := Logs{}
+	c.Message = append(c.Message, "> ")
+	return c
+}
+
 func (c *Logs) Add(Message string) {
-	c.Message = append(c.Message, c.generateMessage(Message))
+	log.Print(Message)
+	c.Message = append(c.Message, Message)
 }
 
 func (c *Logs) Error(err error) {
-	c.Message = append(c.Message, c.generateMessage(err.Error()))
+	log.Print(err.Error())
+	c.Message = append(c.Message, err.Error())
 }
 
 func (c Logs) generateMessage(msg string) string {
-	return fmt.Sprintf("> %v", msg)
+	return fmt.Sprintf("%v", msg)
 }

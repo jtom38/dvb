@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/jtom38/dvb/domain"
@@ -23,65 +22,43 @@ func NewBackupClient() BackupClient {
 }
 
 // This will return the location of the new file on disk if it was successful
-func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domain.ContainerDocker) (domain.RunDetails, error) {
+func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domain.ContainerDocker) error {
 	client := NewDockerCliClient()
 
 	log.Printf("> Checking for %v", config.Name)
 	inspect, err := client.InspectContainer(config.Name)
 	if err != nil {
-		return details, errors.New(inspect)
+		return errors.New(inspect)
 	}
 
 	log.Print("> Stopping container")
 	out, err := client.StopContainer(config.Name)
 	if err != nil {
-		return details, errors.New(out)
+		return errors.New(out)
 	}
 
-	log.Print("> Determining backup name")
-
-	// Check if we are going to dump into the working directory
-	//tarDirectory, err := c.GetDirectoryPath(config.Tar.Directory)
-	//if err != nil {
-	//	return details, err
-	//}
-	//details.Backup.Directory = tarDirectory
-
-	//backupName := c.GetValidFileName(config.Tar, details.Backup.Directory)
-	//details.Backup.FileName = backupName
-	//details.Backup.Extension = ".tar"
-
-	log.Printf("Backup will generate as '%v'", details.Backup.FileName)
+	log.Printf("Backup will generate as '%v'", details.Backup.FileNameWithExtension)
 
 	// backup volume
 	log.Print("> Starting to backup the volume")
 	backedResults, err := client.BackupDockerVolume(BackupVolumeParams{
 		ContainerName:  config.Name,
-		BackupFolder:   details.Backup.Directory,
+		BackupFolder:   details.Backup.LocalDirectory,
 		BackupFilename: details.Backup.FileName,
-		TargetFolder:   config.Directory,
+		TargetFolder:   details.Backup.TargetDirectory,
 	})
 	if err != nil {
-		return details, errors.New(backedResults)
+		return errors.New(backedResults)
 	}
-	
-	path := filepath.Join(details.Backup.Directory, details.Backup.FileNameWithExtension)
-	_, err = os.Stat(path)
-	if err != nil {
-		return details, err
-	}
-
-	// The file exists, so we will return the location we tested
-	details.Backup.FullFilePath = path
 
 	// start container
 	log.Print("> Starting container")
 	out, err = client.StartContainer(config.Name)
 	if err != nil {
-		return details, errors.New(out)
+		return errors.New(out)
 	}
 
-	return details, nil
+	return nil
 }
 
 //func (c BackupClient) GetDirectoryPath(value string) (string, error) {

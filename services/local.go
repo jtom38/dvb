@@ -32,32 +32,30 @@ func NewMoveClient(backupName, backupPath, containerName, destination string) Mo
 	return c
 }
 
-func (c MoveClient) Move() error {
+func (c MoveClient) Move(details domain.RunDetails) error {
 	// Make sure the file and dest exist
 	_, err := os.Stat(c.destination)
 	if err != nil {
 		return err
 	}
 
-	fileName := fmt.Sprintf("%v.%v", c.backupName, c.fileExtension)
+	//fileName := fmt.Sprintf("%v.%v", c.backupName, c.fileExtension)
 
 	// Create the directory based on the name of the container/service
-	subFolder := filepath.Join(c.destination, c.containerName)
-	_, err = os.Stat(subFolder)
+	_, err = os.Stat(details.Dest.Local.Directory)
 	if err != nil {
-		err = os.Mkdir(subFolder, 0755)
+		err = os.Mkdir(details.Dest.Local.Directory, 0755)
 		if err != nil {
 			return err
 		}
 	}
 
-	newPath := filepath.Join(subFolder, fileName)
+	err = c.CopyFile(details.Backup.FullFilePath, details.Dest.Local.FullFilePath)
+	if err != nil {
+		return err
+	}
 
-	//newPath := fmt.Sprintf("%v/%v.%v", Destination, details.BackupName, c.FileExtension)
-
-	c.CopyFile(c.backupPath, newPath)
-
-	_, err = os.Stat(newPath)
+	_, err = os.Stat(details.Dest.Local.FullFilePath)
 	if err != nil {
 		return err
 	}

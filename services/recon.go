@@ -32,61 +32,105 @@ func NewReconClient(config domain.Config) ReconClient {
 
 // Scout is the main logic loop and reports back its findings to
 func (c ReconClient) DockerScout(container domain.ContainerDocker) (domain.RunDetails, error) {
-	var res domain.RunDetails
-	var backup domain.RunBackupDetails
+	var (
+		err       error
+		res       domain.RunDetails
+		backup    domain.RunBackupDetails
+		destLocal domain.RunDetailsDestLocal
+	)
 
 	// set the container name
 	res.ContainerName = container.Name
 
 	for {
-		backup, err := c.NewBackupDetails(container.Directory)
+		backup, err = c.NewBackupDetails(container.Directory, container.Name, container.Tar.Directory)
 		if err != nil {
 			return res, err
 		}
 
 		// make sure that we are able to use the generated name and path
 		err = c.ValidateBackupDetails(backup)
-		if err != nil {
+		if err == nil {
+			res.Backup = backup
 			break
 		}
 	}
-	res.Backup = backup
 
 	// build the details for our dest
 	if c.config.Destination.Local.Path != "" {
-
+		destLocal, err = c.getLocalDestValues(GetLocalDestValuesParam{
+			Container: container,
+			Backup:    backup,
+			Dest:      c.config.Destination.Local,
+		})
+		if err != nil {
+			return res, err
+		}
+		res.Dest.Local = destLocal
 	}
 
-	// Generate Local Dest details
+	return res, nil
+}
 
-	tarDir, err := c.getDirectoryPath(container.Tar.Directory)
-	if err != nil {
-		return c.details, err
+type GetLocalDestValuesParam struct {
+	Container domain.ContainerDocker
+	Backup    domain.RunBackupDetails
+	Dest      domain.ConfigDestLocal
+}
+
+// This controls the loop that will check to make sure the generated values are all correct.
+// If it it finds a combo that will not work then it will generate a new value
+func (c ReconClient) getLocalDestValues(params GetLocalDestValuesParam) (domain.RunDetailsDestLocal, error) {
+	var (
+		dest    domain.RunDetailsDestLocal
+		err     error
+		counter int
+	)
+
+	for {
+		dest, err = c.GetLocalDestDetails(LocalDetailsParam{
+			Container:     params.Container,
+			BackupDetails: params.Backup,
+			DestLocal:     params.Dest,
+			Counter:       counter,
+		})
+		if err != nil {
+			return dest, err
+		}
+
+		err = c.ValidateLocalDestDetails(dest)
+		if err == nil {
+			return dest, nil
+		}
+		counter = counter + 1
 	}
-	c.details.Backup.Directory = tarDir
-	//c.TestBackupName()
 
-	return c.details, nil
 }
 
 // This will generate new backup details and store them.
-func (c ReconClient) NewBackupDetails(backupDir string) (domain.RunBackupDetails, error) {
+func (c ReconClient) NewBackupDetails(targetDir, folderName, destDir string) (domain.RunBackupDetails, error) {
 	var d domain.RunBackupDetails
 
 	name := uuid.NewString()
 	ext := "tar"
 	nameAndExt := fmt.Sprintf("%v.%v", name, ext)
-	backupDir, err := ReplaceAllConfigVariables(backupDir)
+	d.ServiceName = folderName
+
+	destDir = filepath.Join(destDir, folderName)
+
+	destDir, err := ReplaceAllConfigVariables(destDir)
 	if err != nil {
 		return d, err
 	}
 
 	d = domain.RunBackupDetails{
-		Directory:             backupDir,
+		TargetDirectory:       targetDir,
+		LocalDirectory:        destDir,
 		FileName:              name,
 		Extension:             ext,
 		FileNameWithExtension: nameAndExt,
-		FullFilePath:          filepath.Join(backupDir, nameAndExt),
+		FullFilePath:          filepath.Join(destDir, nameAndExt),
+		ServiceName:           folderName,
 	}
 
 	return d, nil
@@ -100,20 +144,51 @@ func (c ReconClient) ValidateBackupDetails(details domain.RunBackupDetails) erro
 	return errors.New(ErrFileAlreadyExists)
 }
 
-func (c ReconClient) GetLocalDestDetails(config domain.ConfigDestLocal, backup domain.RunBackupDetails) (domain.RunDetailsDestLocal) {
+type LocalDetailsParam struct {
+	Counter       int
+	Container     domain.ContainerDocker
+	BackupDetails domain.RunBackupDetails
+	DestLocal     domain.ConfigDestLocal
+}
+
+// func (c ReconClient) GetLocalDestDetails(config domain.ConfigDestLocal, backup domain.RunBackupDetails) domain.RunDetailsDestLocal {
+func (c ReconClient) GetLocalDestDetails(params LocalDetailsParam) (domain.RunDetailsDestLocal, error) {
 	var d domain.RunDetailsDestLocal
+	var fileName string
 
-	dir, err := ReplaceAllConfigVariables(config.Path)
+	dir := filepath.Join(params.DestLocal.Path, params.BackupDetails.ServiceName)
+
+	dir, err := ReplaceAllConfigVariables(dir)
 	if err != nil {
-		
+		return d, err
 	}
-	d = domain.RunDetailsDestLocal{
-		Directory: dir,
-		FileName:  backup.FileName,
-		Extension: backup.Extension,
 
+	// append the counter value to the name
+	fileName = fmt.Sprintf("%v.%v", params.Container.Tar.Pattern, params.Counter)
+
+	fileName, err = ReplaceAllConfigVariables(fileName)
+	if err != nil {
+		return d, err
 	}
-	return d
+
+	fileWithExt := fmt.Sprintf("%v.%v", fileName, params.BackupDetails.Extension)
+
+	d = domain.RunDetailsDestLocal{
+		Directory:             dir,
+		FileName:              fileName,
+		Extension:             params.BackupDetails.Extension,
+		FileNameWithExtension: fileWithExt,
+		FullFilePath:          filepath.Join(dir, fileWithExt),
+	}
+	return d, nil
+}
+
+func (c ReconClient) ValidateLocalDestDetails(details domain.RunDetailsDestLocal) error {
+	_, err := os.Stat(details.FullFilePath)
+	if err != nil {
+		return nil
+	}
+	return errors.New(ErrFileAlreadyExists)
 }
 
 // Test to make sure the path works before we commit the values to the RunDetails.
