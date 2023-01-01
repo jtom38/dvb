@@ -1,4 +1,4 @@
-package services_test
+package dest_test
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/jtom38/dvb/domain"
-	"github.com/jtom38/dvb/services"
+	"github.com/jtom38/dvb/services/dest"
 )
 
 func TestLocalRetainCountFiles(t *testing.T) {
@@ -15,7 +15,7 @@ func TestLocalRetainCountFiles(t *testing.T) {
 		Path: "/Users/jamestombleson",
 	}
 
-	c := services.NewRetainClient(config, "webdav", 1)
+	c := dest.NewLocalRetainClient(config, "webdav", 1)
 	_, err := c.CountFiles("retain")
 	if err != nil {
 		t.Error(err)
@@ -27,7 +27,7 @@ func TestLocalRetainFindOldest(t *testing.T) {
 		Path: "/Users/jamestombleson",
 	}
 
-	c := services.NewRetainClient(config, "webdav", 1)
+	c := dest.NewLocalRetainClient(config, "webdav", 1)
 	oldest, err := c.FindOldestFile(".go")
 	if err != nil {
 		t.Error(err)
@@ -40,7 +40,7 @@ func TestLocalRetainCheck(t *testing.T) {
 		Path: "/Users/jamestombleson",
 	}
 
-	c := services.NewRetainClient(config, "webdav", 1)
+	c := dest.NewLocalRetainClient(config, "webdav", 1)
 	err := c.Check(".go")
 	if err != nil {
 		t.Error(err)
@@ -60,8 +60,8 @@ func TestLocalMove(t *testing.T) {
 
 	backupPath := filepath.Join(pwd, "fake.tar")
 
-	c := services.NewMoveClient("fake", backupPath, "test-container", pwd)
-	err = c.Move()
+	c := dest.NewMoveClient("fake", backupPath, "test-container", pwd)
+	err = c.Move(domain.RunDetails{})
 	if err != nil {
 		t.Error(err)
 	}

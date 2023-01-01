@@ -41,20 +41,22 @@ type Logs struct {
 
 func NewLogs() Logs {
 	c := Logs{}
-	c.Message = append(c.Message, "> ")
 	return c
 }
 
 func (c *Logs) Add(Message string) {
+	c.Message = append(c.Message, c.generateMessage(Message))
 	log.Print(Message)
-	c.Message = append(c.Message, Message)
 }
 
 func (c *Logs) Error(err error) {
+	c.Message = append(c.Message, c.generateMessage(err.Error()))
 	log.Print(err.Error())
-	c.Message = append(c.Message, err.Error())
 }
 
 func (c Logs) generateMessage(msg string) string {
-	return fmt.Sprintf("%v", msg)
+	if len(c.Message) == 0 {
+		return fmt.Sprintf("> %v", msg)
+	}
+	return msg
 }

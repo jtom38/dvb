@@ -1,4 +1,4 @@
-package services
+package discovery
 
 import (
 	"errors"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jtom38/dvb/domain"
+	"github.com/jtom38/dvb/services/common"
 )
 
 const (
@@ -118,7 +119,7 @@ func (c ReconClient) NewBackupDetails(targetDir, folderName, destDir string) (do
 
 	destDir = filepath.Join(destDir, folderName)
 
-	destDir, err := ReplaceAllConfigVariables(destDir)
+	destDir, err := common.ReplaceAllConfigVariables(destDir)
 	if err != nil {
 		return d, err
 	}
@@ -158,7 +159,7 @@ func (c ReconClient) GetLocalDestDetails(params LocalDetailsParam) (domain.RunDe
 
 	dir := filepath.Join(params.DestLocal.Path, params.BackupDetails.ServiceName)
 
-	dir, err := ReplaceAllConfigVariables(dir)
+	dir, err := common.ReplaceAllConfigVariables(dir)
 	if err != nil {
 		return d, err
 	}
@@ -166,7 +167,7 @@ func (c ReconClient) GetLocalDestDetails(params LocalDetailsParam) (domain.RunDe
 	// append the counter value to the name
 	fileName = fmt.Sprintf("%v.%v", params.Container.Tar.Pattern, params.Counter)
 
-	fileName, err = ReplaceAllConfigVariables(fileName)
+	fileName, err = common.ReplaceAllConfigVariables(fileName)
 	if err != nil {
 		return d, err
 	}
@@ -203,17 +204,17 @@ func (c ReconClient) TestBackupName(dir, name, ext string) error {
 	return nil
 }
 
-func (c ReconClient) getDirectoryPath(value string) (string, error) {
-	if value == "$PWD" {
-		workingDirectory, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-
-		return workingDirectory, nil
-	}
-	return value, nil
-}
+//func (c ReconClient) getDirectoryPath(value string) (string, error) {
+//	if value == "$PWD" {
+//		workingDirectory, err := os.Getwd()
+//		if err != nil {
+//			return "", err
+//		}
+//
+//		return workingDirectory, nil
+//	}
+//	return value, nil
+//}
 
 // This will update the filename if one already exists with a number appended
 func (c ReconClient) GetValidFileName(config domain.ConfigContainerTar, directory string) string {
