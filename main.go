@@ -1,28 +1,21 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/jtom38/dvb/domain"
 	"github.com/jtom38/dvb/services"
+	"github.com/jtom38/dvb/services/alerts"
+	"github.com/jtom38/dvb/services/cmd"
+	"github.com/jtom38/dvb/services/dest"
+	"github.com/jtom38/dvb/services/targets"
 	"gopkg.in/yaml.v3"
 )
 
 func main() {
-	var flagConfigPath string
-
-	flag.StringVar(&flagConfigPath, "config", "config.yaml", "Defines what yaml config file to use")
-	flag.Parse()
-
-	// load the config file into memory
-	config := MustLoadConfig(flagConfigPath)
-
-	for _, container := range config.Backup.Docker {
-		ProcessDockerContainers(config, container)
-	}
+	cmd.Execute()
 }
 
 func ProcessDockerContainers(config domain.Config, container domain.ContainerDocker) error {
@@ -42,8 +35,8 @@ func ProcessDockerContainers(config domain.Config, container domain.ContainerDoc
 	}
 
 	// Start the backup process on the container
-	backupClient := services.NewBackupClient()
-	err = backupClient.BackupDockerVolume(details, container)
+	backupDockerClient := targets.NewDockerClient()
+	err = backupDockerClient.BackupDockerVolume(details, container)
 	if err != nil {
 		logs.Error(err)
 		SendAlert(config.Alert, logs)
@@ -67,7 +60,7 @@ func ProcessDockerContainers(config domain.Config, container domain.ContainerDoc
 		return nil
 	}
 
-	retain := services.NewRetainClient(config.Destination.Local, details.ContainerName, config.Destination.Retain.Days)
+	retain := dest.NewLocalRetainClient(config.Destination.Local, details.ContainerName, config.Destination.Retain.Days)
 	err = retain.Check(".tar")
 	if err != nil {
 		logs.Error(err)
@@ -99,7 +92,7 @@ func MustLoadConfig(path string) domain.Config {
 func MoveFile(details domain.RunDetails, config domain.ConfigDest) error {
 	var err error
 	if details.Dest.Local.Directory != "" {
-		local := services.NewMoveClient(details.Backup.FileName, details.Backup.FullFilePath, details.ContainerName, config.Local.Path)
+		local := dest.NewLocalClient(details.Backup.FileName, details.Backup.FullFilePath, details.ContainerName, config.Local.Path)
 		err = local.Move(details)
 		if err != nil {
 			return err
@@ -116,7 +109,7 @@ func MoveFile(details domain.RunDetails, config domain.ConfigDest) error {
 }
 
 func SendAlert(config domain.ConfigAlert, logs domain.Logs) {
-	discordAlert := services.NewDiscordAlertClient(config.Discord.Webhooks, config.Discord.Username)
+	discordAlert := alerts.NewDiscordAlertClient(config.Discord.Webhooks, config.Discord.Username)
 	m := strings.Join(logs.Message, "\r\n> ")
 	discordAlert.ReplaceContent(m)
 	discordAlert.Send()
