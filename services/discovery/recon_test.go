@@ -1,10 +1,10 @@
-package services_test
+package discovery_test
 
 import (
 	"testing"
 
 	"github.com/jtom38/dvb/domain"
-	"github.com/jtom38/dvb/services"
+	"github.com/jtom38/dvb/services/discovery"
 )
 
 func getConfig() domain.Config {
@@ -37,7 +37,7 @@ func getConfig() domain.Config {
 
 func TestReconNewBackupDetails(t *testing.T) {
 	config := getConfig()
-	c := services.NewReconClient(config)
+	c := discovery.NewReconClient(config)
 	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
 	if err != nil {
 		t.Error(err)
@@ -50,7 +50,7 @@ func TestReconNewBackupDetails(t *testing.T) {
 
 func TestReconValidateBackupDetails(t *testing.T) {
 	config := getConfig()
-	c := services.NewReconClient(config)
+	c := discovery.NewReconClient(config)
 	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
 	if err != nil {
 		t.Error(err)
@@ -65,12 +65,12 @@ func TestReconValidateBackupDetails(t *testing.T) {
 func TestReconGetLocalDestDetails(t *testing.T) {
 	config := getConfig()
 
-	c := services.NewReconClient(config)
+	c := discovery.NewReconClient(config)
 	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = c.GetLocalDestDetails(services.LocalDetailsParam{
+	_, err = c.GetLocalDestDetails(discovery.LocalDetailsParam{
 		Container:     config.Backup.Docker[0],
 		BackupDetails: backupDetails,
 		DestLocal:     config.Destination.Local,
@@ -84,13 +84,13 @@ func TestReconGetLocalDestDetails(t *testing.T) {
 func TestReconValidateLocalDestDetails(t *testing.T) {
 	config := getConfig()
 
-	c := services.NewReconClient(config)
+	c := discovery.NewReconClient(config)
 	backupDetails, err := c.NewBackupDetails(config.Backup.Docker[0].Directory, config.Backup.Docker[0].Name, config.Backup.Docker[0].Tar.Directory)
 	if err != nil {
 		t.Error(err)
 	}
 
-	dest, err := c.GetLocalDestDetails(services.LocalDetailsParam{
+	dest, err := c.GetLocalDestDetails(discovery.LocalDetailsParam{
 		Container:     config.Backup.Docker[0],
 		BackupDetails: backupDetails,
 		DestLocal:     config.Destination.Local,
@@ -108,7 +108,7 @@ func TestReconValidateLocalDestDetails(t *testing.T) {
 func TestReconDockerScout(t *testing.T) {
 	config := getConfig()
 
-	c := services.NewReconClient(config)
+	c := discovery.NewReconClient(config)
 	details, err := c.DockerScout(config.Backup.Docker[0])
 	if err != nil {
 		t.Error(err)

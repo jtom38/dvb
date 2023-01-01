@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/jtom38/dvb/services/proc"
 	"github.com/spf13/cobra"
 )
 
@@ -17,15 +18,23 @@ var (
 			fmt.Printf("ConfigPath: %v\n", ConfigPath)
 			fmt.Printf("Daemon: %v\n", Daemon)
 
-			info, err := os.Stat(ConfigPath)
+			_, err := os.Stat(ConfigPath)
 			if err != nil {
 				log.Print(err)
 				os.Exit(1)
 			}
-			fmt.Printf("info: %v\n", info)
+
+			client := proc.NewStartBackupClient(proc.StartBackupParams{
+				ConfigPath: ConfigPath,
+				Daemon: Daemon,
+			})
+			err = client.RunProcess()
+			if err != nil {
+				log.Print(err)
+				os.Exit(1)
+			}
 		},
 	}
-	ConfigPath string
 )
 
 
