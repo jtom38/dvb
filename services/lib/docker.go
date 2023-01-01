@@ -1,4 +1,4 @@
-package services
+package lib
 
 import (
 	"encoding/json"
@@ -154,14 +154,14 @@ func (c DockerCliClient) InspectContainerStatus(name string) (DockerContainerSta
 	return result, nil
 }
 
-type BackupVolumeParams struct {
+type DockerBackupVolumeParams struct {
 	ContainerName  string
 	BackupFolder   string
 	BackupFilename string
 	TargetFolder   string
 }
 
-func (c DockerCliClient) BackupDockerVolume(params BackupVolumeParams) (string, error) {
+func (c DockerCliClient) BackupDockerVolume(params DockerBackupVolumeParams) (string, error) {
 	// docker run --rm --volumes-from webdav-app-1 -v $PWD:/backup-dir ubuntu tar cvf /backup-dir/webdav-backup.tar /var/lib/dav
 
 	cmd := fmt.Sprintf("%v --rm --volumes-from %v -v %v:/backup-dir ubuntu tar cvf /backup-dir/%v.tar %v", DockerRun, params.ContainerName, params.BackupFolder, params.BackupFilename, params.TargetFolder)

@@ -1,4 +1,4 @@
-package services
+package targets
 
 import (
 	"errors"
@@ -8,22 +8,24 @@ import (
 	"strings"
 
 	"github.com/jtom38/dvb/domain"
+	"github.com/jtom38/dvb/services/lib"
+	"github.com/jtom38/dvb/services/common"
 )
 
-type BackupClient struct {
+type DockerClient struct {
 	FileExtension string
 }
 
-func NewBackupClient() BackupClient {
-	c := BackupClient{
+func NewDockerClient() DockerClient {
+	c := DockerClient{
 		FileExtension: "tar",
 	}
 	return c
 }
 
 // This will return the location of the new file on disk if it was successful
-func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domain.ContainerDocker) error {
-	client := NewDockerCliClient()
+func (c DockerClient) BackupDockerVolume(details domain.RunDetails, config domain.ContainerDocker) error {
+	client := lib.NewDockerCliClient()
 
 	log.Printf("> Checking for %v", config.Name)
 	inspect, err := client.InspectContainer(config.Name)
@@ -41,7 +43,7 @@ func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domai
 
 	// backup volume
 	log.Print("> Starting to backup the volume")
-	backedResults, err := client.BackupDockerVolume(BackupVolumeParams{
+	backedResults, err := client.BackupDockerVolume(lib.DockerBackupVolumeParams{
 		ContainerName:  config.Name,
 		BackupFolder:   details.Backup.LocalDirectory,
 		BackupFilename: details.Backup.FileName,
@@ -61,7 +63,7 @@ func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domai
 	return nil
 }
 
-//func (c BackupClient) GetDirectoryPath(value string) (string, error) {
+//func (c DockerClient) GetDirectoryPath(value string) (string, error) {
 //	if value == "$PWD" {
 //		workingDirectory, err := os.Getwd()
 //		if err != nil {
@@ -73,7 +75,7 @@ func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domai
 //	return value, nil
 //}
 
-//func (c BackupClient) ReplaceDatePlaceholder(pattern string) string {
+//func (c DockerClient) ReplaceDatePlaceholder(pattern string) string {
 //	backupName := pattern
 //	todayString := time.Now().Format("20060102")
 //	backupName = strings.ReplaceAll(backupName, "{{date}}", todayString)
@@ -81,7 +83,7 @@ func (c BackupClient) BackupDockerVolume(details domain.RunDetails, config domai
 //}
 
 // This will update the filename if one already exists with a number appended
-func (c BackupClient) GetValidFileName(config domain.ConfigContainerTar, directory string) (string, error) {
+func (c DockerClient) GetValidFileName(config domain.ConfigContainerTar, directory string) (string, error) {
 	var tempName string
 	var t string
 
@@ -89,7 +91,7 @@ func (c BackupClient) GetValidFileName(config domain.ConfigContainerTar, directo
 	backupName := config.Pattern
 
 	if strings.Contains(config.Pattern, "{{date}}") {
-		backupName, err := ReplaceAllConfigVariables(config.Pattern)
+		backupName, err := common.ReplaceAllConfigVariables(config.Pattern)
 		if err != nil {
 			return backupName, err
 		}

@@ -1,4 +1,4 @@
-package services
+package dest
 
 import (
 	"errors"
@@ -22,6 +22,17 @@ type MoveClient struct {
 }
 
 func NewMoveClient(backupName, backupPath, containerName, destination string) MoveClient {
+	c := MoveClient{
+		backupName:    backupName,
+		backupPath:    backupPath,
+		containerName: containerName,
+		destination:   destination,
+		fileExtension: "tar",
+	}
+	return c
+}
+
+func NewLocalClient(backupName, backupPath, containerName, destination string) MoveClient {
 	c := MoveClient{
 		backupName:    backupName,
 		backupPath:    backupPath,
@@ -98,7 +109,6 @@ func (c MoveClient) CopyFile(source, dest string) error {
 	d.Close()
 
 	return nil
-
 }
 
 type RetainClient struct {
@@ -107,7 +117,7 @@ type RetainClient struct {
 	containerName string
 }
 
-func NewRetainClient(config domain.ConfigDestLocal, containerName string, retainDays int) RetainClient {
+func NewLocalRetainClient(config domain.ConfigDestLocal, containerName string, retainDays int) RetainClient {
 	return RetainClient{
 		config:        config,
 		days:          retainDays,
