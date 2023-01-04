@@ -1,7 +1,7 @@
 package domain
 
 type SendAlert interface {
-	Send() error
+	SendAlert() error
 }
 
 type DiscordField struct {

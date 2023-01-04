@@ -10,6 +10,7 @@ import (
 	"github.com/jtom38/dvb/services/alerts"
 	"github.com/jtom38/dvb/services/dest"
 	"github.com/jtom38/dvb/services/discovery"
+	"github.com/jtom38/dvb/services/lib"
 	"github.com/jtom38/dvb/services/targets"
 	"gopkg.in/yaml.v3"
 )
@@ -31,12 +32,23 @@ func NewStartBackupClient(params StartBackupParams) StartBackupClient {
 }
 
 func (c StartBackupClient) RunProcess() error {
+	// Get the config file loaded into memory.
+	// Need this is we are running once or as a daemon
 	config, err := c.LoadConfig(c.Params.ConfigPath)
 	if err != nil {
 		return err
 	}
 	c.SetConfig(config)
 
+	err = c.RunSingle()
+	if err != nil {
+		return nil
+	}
+	return nil
+}
+
+// This runs the tool once and closes down once its finished.
+func (c StartBackupClient) RunSingle() error {
 	// Process all requested docker containers
 	for _, container := range c.Config.Backup.Docker {
 		err := c.ProcessDockerContainers(container)
@@ -77,6 +89,10 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 		return err
 	}
 	logs.Add(fmt.Sprintf("Backup was created. '%v.tar'", details.Backup.FileName))
+
+	// run any post reboot requests after a backup was made
+	c.postRebootContainer(container.Post.Reboot)
+
 
 	err = c.MoveFile(details, c.Config.Destination)
 	if err != nil {
@@ -143,8 +159,69 @@ func (c StartBackupClient) MoveFile(details domain.RunDetails, config domain.Con
 }
 
 func (c StartBackupClient) SendAlert(config domain.ConfigAlert, logs domain.Logs) {
-	discordAlert := alerts.NewDiscordAlertClient(config.Discord.Webhooks, config.Discord.Username)
+	var err error
+
+	if len(config.Discord.Webhooks) >= 1 {
+		log.Print("Sending discord alert")
+		err = c.sendDiscordAlert(config.Discord, logs)
+		if err != nil {
+			log.Print(err)
+		}
+	}
+
+	if config.Email.Account.Username != "" && config.Email.Account.Password != "" {
+		log.Print("Sending email alert")
+		err = c.sendEmailAlert(config.Email, logs)
+		if err != nil {
+			log.Print(err)
+		}
+	}
+}
+
+func (c StartBackupClient) sendDiscordAlert(config domain.ConfigAlertDiscord, logs domain.Logs) error {
 	m := strings.Join(logs.Message, "\r\n> ")
+
+	discordAlert := alerts.NewDiscordAlertClient(config.Webhooks, config.Username)
 	discordAlert.ReplaceContent(m)
-	discordAlert.Send()
+	err := discordAlert.Send()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c StartBackupClient) sendEmailAlert(config domain.ConfigAlertEmail, logs domain.Logs) error {
+	m := strings.Join(logs.Message, "<br>")
+
+	client := alerts.NewSmtpClient(config)
+	client.SetSubject(alerts.EmailSubjectSuccess)
+	client.SetBody(m)
+	err := client.SendAlert()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c StartBackupClient) postRebootContainer(names []string) {
+	if len(names) == 0 {
+		return
+	}
+
+
+	client := lib.NewDockerCliClient()
+	log.Print("Running Post Reboot requests")
+
+	for _, name := range names {
+		output, err := client.StopContainer(name)
+		if err != nil {
+			log.Print(output)
+		}
+
+		output, err = client.StartContainer(name)
+		if err != nil {
+			log.Print(output)
+		}
+	}
 }

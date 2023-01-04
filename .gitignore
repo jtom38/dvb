@@ -1,6 +1,7 @@
 config.yaml
 *.tar 
 Caddyfile
+.env
 
 # Binaries for programs and plugins
 *.exe

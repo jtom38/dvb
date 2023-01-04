@@ -12,15 +12,20 @@ type BackupConfig struct {
 }
 
 type ContainerDocker struct {
-	Name      string             `yaml:"Name"`
-	Directory string             `yaml:"Directory"`
-	Tar       ConfigContainerTar `yaml:"Tar"`
+	Name      string              `yaml:"Name"`
+	Directory string              `yaml:"Directory"`
+	Tar       ConfigContainerTar  `yaml:"Tar"`
+	Post      ConfigContainerPost `yaml:"Post,omitempty"`
 }
 
 type ConfigContainerTar struct {
 	UseDate   bool   `yaml:"UseDate,omitempty"`
 	Pattern   string `yaml:"Pattern,omitempty"`
 	Directory string `yaml:"Directory,omitempty"`
+}
+
+type ConfigContainerPost struct {
+	Reboot []string `yaml:"Reboot,omitempty"`
 }
 
 type ConfigDest struct {
@@ -48,9 +53,24 @@ type ConfigDestSftp struct {
 
 type ConfigAlert struct {
 	Discord ConfigAlertDiscord `yaml:"Discord,omitempty"`
+	Email   ConfigAlertEmail   `yaml:"Email,omitempty"`
 }
 
 type ConfigAlertDiscord struct {
 	Username string   `yaml:"Username,omitempty"`
 	Webhooks []string `yaml:"Webhooks,omitempty"`
+}
+
+type ConfigAlertEmail struct {
+	Account ConfigAlertEmailAccount `yaml:"Account"`
+	From    string                  `yaml:"From"`
+	To      string                  `yaml:"To"`
+}
+
+type ConfigAlertEmailAccount struct {
+	Username string `yaml:"Username"`
+	Password string `yaml:"Password"`
+	Host     string `yaml:"Host"`
+	Port     int    `yaml:"Port"`
+	UseTls   bool   `yaml:"UseTls"`
 }
