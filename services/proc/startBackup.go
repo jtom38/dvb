@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+
+	"github.com/robfig/cron/v3"
+	"gopkg.in/yaml.v3"
 
 	"github.com/jtom38/dvb/domain"
 	"github.com/jtom38/dvb/services/alerts"
@@ -12,7 +17,6 @@ import (
 	"github.com/jtom38/dvb/services/discovery"
 	"github.com/jtom38/dvb/services/lib"
 	"github.com/jtom38/dvb/services/targets"
-	"gopkg.in/yaml.v3"
 )
 
 type StartBackupParams struct {
@@ -40,10 +44,18 @@ func (c StartBackupClient) RunProcess() error {
 	}
 	c.SetConfig(config)
 
-	err = c.RunSingle()
-	if err != nil {
-		return nil
+	// If daemon is requested from param or config check
+	if c.Config.Daemon.Cron != "" {
+		log.Print("Daemon mode was requested.")
+		log.Printf("Backups will start at '%v'", c.Config.Daemon.Cron)
+		c.RunDaemon()
+	} else {
+		err = c.RunSingle()
+		if err != nil {
+			return nil
+		}
 	}
+
 	return nil
 }
 
@@ -58,6 +70,43 @@ func (c StartBackupClient) RunSingle() error {
 	}
 
 	return nil
+}
+
+func (c StartBackupClient) RunDaemon() error {
+	// Set when we want to run the backup job
+	cronClient := cron.New()
+	_, err := cronClient.AddFunc(c.Config.Daemon.Cron, func() {
+		log.Print("Cron was triggered")
+		go c.RunSingle()
+	})
+	if err != nil {
+		log.Print(err)
+	}
+
+	cronClient.Start()
+
+	// Check if we get a request to stop the app
+	ch := make(chan os.Signal, 6)
+	signal.Notify(ch,
+		syscall.SIGTERM,
+		syscall.SIGINT,
+		syscall.SIGQUIT,
+	)
+
+	for {
+		req := <-ch
+		switch req {
+		case syscall.SIGTERM:
+			fallthrough
+		case syscall.SIGINT:
+			cronClient.Stop()
+			signal.Stop(ch)
+			return nil
+		case syscall.SIGQUIT:
+			signal.Stop(ch)
+			os.Exit(0)
+		}
+	}
 }
 
 func (c *StartBackupClient) SetConfig(config domain.Config) {
@@ -93,7 +142,6 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	// run any post reboot requests after a backup was made
 	c.postRebootContainer(container.Post.Reboot)
 
-
 	err = c.MoveFile(details, c.Config.Destination)
 	if err != nil {
 		logs.Error(err)
@@ -118,7 +166,8 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 		return err
 	}
 
-	logs.Add(fmt.Sprintf("No errors reported backing up '%v'", container.Name))
+	logs.Add(fmt.Sprintf("No errors reported backing up '%v' 🎉", container.Name))
+
 	c.SendAlert(c.Config.Alert, logs)
 	return nil
 }
@@ -188,6 +237,7 @@ func (c StartBackupClient) sendDiscordAlert(config domain.ConfigAlertDiscord, lo
 		return err
 	}
 
+	log.Print("> OK")
 	return nil
 }
 
@@ -201,6 +251,7 @@ func (c StartBackupClient) sendEmailAlert(config domain.ConfigAlertEmail, logs d
 	if err != nil {
 		return err
 	}
+	log.Print("> OK")
 	return nil
 }
 
@@ -209,16 +260,17 @@ func (c StartBackupClient) postRebootContainer(names []string) {
 		return
 	}
 
-
 	client := lib.NewDockerCliClient()
 	log.Print("Running Post Reboot requests")
 
 	for _, name := range names {
+		log.Printf("Stopping '%v'", name)
 		output, err := client.StopContainer(name)
 		if err != nil {
 			log.Print(output)
 		}
 
+		log.Printf("Starting '%v'", name)
 		output, err = client.StartContainer(name)
 		if err != nil {
 			log.Print(output)

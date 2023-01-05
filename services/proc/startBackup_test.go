@@ -8,7 +8,7 @@ import (
 
 func TestStartBackup(t *testing.T) {
 	c := proc.NewStartBackupClient(proc.StartBackupParams{
-		Daemon: false,
+		Daemon:     true,
 		ConfigPath: "config.yaml",
 	})
 

@@ -2,9 +2,14 @@ package domain
 
 // This is the root yaml config that contains the information needed to operate
 type Config struct {
+	Daemon      ConfigDaemon `yaml:"Daemon,omitempty"`
 	Backup      BackupConfig `yaml:"Backup"`
 	Alert       ConfigAlert  `yaml:"Alert,omitempty"`
 	Destination ConfigDest   `yaml:"Destination,omitempty"`
+}
+
+type ConfigDaemon struct {
+	Cron string `yaml:"Cron,omitempty"`
 }
 
 type BackupConfig struct {
