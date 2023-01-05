@@ -1,5 +1,21 @@
 # dvb (Docker Volume Backup)
 
+- [dvb (Docker Volume Backup)](#dvb-docker-volume-backup)
+  - [Requirements](#requirements)
+  - [Install](#install)
+  - [Config](#config)
+    - [Variables](#variables)
+    - [Backup](#backup)
+      - [Docker](#docker)
+    - [Destination](#destination)
+    - [Retain](#retain)
+      - [Local](#local)
+    - [Alerts](#alerts)
+      - [Discord Webhooks](#discord-webhooks)
+      - [Email](#email)
+    - [Daemon](#daemon)
+  - [Full Config Example](#full-config-example)
+
 Docker Volume Backup is a cli tool I use to backup my data on my docker servers.  I have mixed luck with cron trying to chain together commands to get them to work the way I want.  I want also wnt to see the notifications come in when the backups are done so I can keep an eye on things.
 
 ## Requirements
@@ -148,9 +164,34 @@ Alert:
     To: servermaintainer@gmail.com
 ```
 
+### Daemon
+
+The daemon mode will keep the process alive and will generate backups based on a cron value defined in the yaml.
+
+If you need assistance to build a cron timer, use [crontab.guru](https://crontab.guru).
+
+```yaml
+
+Daemon:
+  # This will start the backup job at midnight 
+  Cron: "0 0 * * *"
+
+Backup:
+  ...
+
+Destination:
+  ...
+
+Alert:
+  ...
+```
+
 ## Full Config Example
 
 ```yaml
+Daemon:
+  Cron: "32 11 * * *"
+
 Backup:
   Docker:
     - Name: webdav-app-1

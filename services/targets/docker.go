@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/jtom38/dvb/domain"
-	"github.com/jtom38/dvb/services/lib"
 	"github.com/jtom38/dvb/services/common"
+	"github.com/jtom38/dvb/services/lib"
 )
 
 type DockerClient struct {

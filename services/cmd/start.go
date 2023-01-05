@@ -26,7 +26,7 @@ var (
 
 			client := proc.NewStartBackupClient(proc.StartBackupParams{
 				ConfigPath: ConfigPath,
-				Daemon: Daemon,
+				Daemon:     Daemon,
 			})
 			err = client.RunProcess()
 			if err != nil {
@@ -37,8 +37,6 @@ var (
 	}
 )
 
-
 func init() {
 	startCmd.Flags().StringVar(&ConfigPath, "config-path", "", "Defines what config file should be loaded")
 }
-

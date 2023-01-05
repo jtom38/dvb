@@ -2,11 +2,10 @@ package proc
 
 type InstallParams struct {
 	ConfigPath string
-	IsUser bool
+	IsUser     bool
 }
 
 type InstallClient struct {
-
 }
 
 func NewInstallClient() InstallClient {

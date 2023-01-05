@@ -69,7 +69,6 @@ func (c StartBackupClient) RunSingle() error {
 		}
 	}
 
-
 	return nil
 }
 
@@ -95,7 +94,7 @@ func (c StartBackupClient) RunDaemon() error {
 	)
 
 	for {
-		req := <- ch
+		req := <-ch
 		switch req {
 		case syscall.SIGTERM:
 			fallthrough
