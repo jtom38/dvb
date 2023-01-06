@@ -1,3 +1,5 @@
 package proc
 
-func ValidateAlertConfig()
+func ValidateAlertConfig() {
+	
+}
