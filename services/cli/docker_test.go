@@ -1,14 +1,14 @@
-package lib_test
+package cli_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/jtom38/dvb/services/lib"
+	"github.com/jtom38/dvb/services/cli"
 )
 
 func TestDockerInspectContainerStatus(t *testing.T) {
-	client := lib.NewDockerCliClient()
+	client := cli.NewDockerCliClient()
 	r, err := client.InspectContainerStatus("webdav-app-1")
 	if err != nil {
 		t.Error(err)
@@ -18,7 +18,7 @@ func TestDockerInspectContainerStatus(t *testing.T) {
 }
 
 func TestDockerPullStopContainer(t *testing.T) {
-	client := lib.NewDockerCliClient()
+	client := cli.NewDockerCliClient()
 	err := client.PollStopContainer("webdav-app-1")
 	if err != nil {
 		t.Error(err)
@@ -26,7 +26,7 @@ func TestDockerPullStopContainer(t *testing.T) {
 }
 
 func TestDockerPullStartContainer(t *testing.T) {
-	client := lib.NewDockerCliClient()
+	client := cli.NewDockerCliClient()
 	err := client.PollStartContainer("webdav-app-1")
 	if err != nil {
 		t.Error(err)

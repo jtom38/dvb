@@ -15,7 +15,7 @@ import (
 	"github.com/jtom38/dvb/services/alerts"
 	"github.com/jtom38/dvb/services/dest"
 	"github.com/jtom38/dvb/services/discovery"
-	"github.com/jtom38/dvb/services/lib"
+	"github.com/jtom38/dvb/services/cli"
 	"github.com/jtom38/dvb/services/targets"
 )
 
@@ -228,7 +228,7 @@ func (c StartBackupClient) SendAlert(config domain.ConfigAlert, logs domain.Logs
 }
 
 func (c StartBackupClient) sendDiscordAlert(config domain.ConfigAlertDiscord, logs domain.Logs, isError bool) error {
-	var color string
+	var color int
 
 	discordAlert := alerts.NewDiscordEmbedMessage(config)
 	hostname, err := os.Hostname()
@@ -289,7 +289,7 @@ func (c StartBackupClient) postRebootContainer(names []string) {
 		return
 	}
 
-	client := lib.NewDockerCliClient()
+	client := cli.NewDockerCliClient()
 	log.Print("Running Post Reboot requests")
 
 	for _, name := range names {

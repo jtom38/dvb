@@ -69,7 +69,7 @@ func TestDiscordEmbedMessage(t *testing.T) {
 		TitleURL:    "https://github.com/jtom38/dvb",
 	})
 	c.AppendFields(alerts.DiscordEmbedFieldParams{
-		Name: "New",
+		Name:  "New",
 		Value: "Thing",
 	})
 

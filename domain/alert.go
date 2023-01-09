@@ -30,7 +30,7 @@ type DiscordEmbed struct {
 	Title       string         `json:"title,omitempty"`
 	Description string         `json:"description,omitempty"`
 	Url         string         `json:"url,omitempty"`
-	Color       int         `json:"color,omitempty"`
+	Color       int            `json:"color,omitempty"`
 	Fields      []DiscordField `json:"fields,omitempty"`
 	Author      DiscordAuthor  `json:"author,omitempty"`
 	Image       DiscordImage   `json:"image,omitempty"`

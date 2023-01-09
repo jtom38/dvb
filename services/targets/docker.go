@@ -9,7 +9,7 @@ import (
 
 	"github.com/jtom38/dvb/domain"
 	"github.com/jtom38/dvb/services/common"
-	"github.com/jtom38/dvb/services/lib"
+	"github.com/jtom38/dvb/services/cli"
 )
 
 type DockerClient struct {
@@ -25,7 +25,7 @@ func NewDockerClient() DockerClient {
 
 // This will return the location of the new file on disk if it was successful
 func (c DockerClient) BackupDockerVolume(details domain.RunDetails, config domain.ContainerDocker) error {
-	client := lib.NewDockerCliClient()
+	client := cli.NewDockerCliClient()
 
 	log.Printf("> Checking for %v", config.Name)
 	inspect, err := client.InspectContainer(config.Name)
@@ -43,7 +43,7 @@ func (c DockerClient) BackupDockerVolume(details domain.RunDetails, config domai
 
 	// backup volume
 	log.Print("> Starting to backup the volume")
-	backedResults, err := client.BackupDockerVolume(lib.DockerBackupVolumeParams{
+	backedResults, err := client.BackupDockerVolume(cli.DockerBackupVolumeParams{
 		ContainerName:  config.Name,
 		BackupFolder:   details.Backup.LocalDirectory,
 		BackupFilename: details.Backup.FileName,
