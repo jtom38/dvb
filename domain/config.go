@@ -57,8 +57,9 @@ type ConfigDestSftp struct {
 }
 
 type ConfigAlert struct {
-	Discord ConfigAlertDiscord `yaml:"Discord,omitempty"`
-	Email   ConfigAlertEmail   `yaml:"Email,omitempty"`
+	SendOnlyOnError bool               `yaml:"SendOnlyOnError,omitempty"`
+	Discord         ConfigAlertDiscord `yaml:"Discord,omitempty"`
+	Email           ConfigAlertEmail   `yaml:"Email,omitempty"`
 }
 
 type ConfigAlertDiscord struct {

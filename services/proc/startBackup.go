@@ -15,7 +15,7 @@ import (
 	"github.com/jtom38/dvb/services/alerts"
 	"github.com/jtom38/dvb/services/dest"
 	"github.com/jtom38/dvb/services/discovery"
-	"github.com/jtom38/dvb/services/lib"
+	"github.com/jtom38/dvb/services/cli"
 	"github.com/jtom38/dvb/services/targets"
 )
 
@@ -134,7 +134,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	err = backupDockerClient.BackupDockerVolume(details, container)
 	if err != nil {
 		logs.Error(err)
-		c.SendAlert(c.Config.Alert, logs)
+		c.SendAlert(c.Config.Alert, logs, true)
 		return err
 	}
 	logs.Add(fmt.Sprintf("Backup was created. '%v.tar'", details.Backup.FileName))
@@ -145,7 +145,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	err = c.MoveFile(details, c.Config.Destination)
 	if err != nil {
 		logs.Error(err)
-		c.SendAlert(c.Config.Alert, logs)
+		c.SendAlert(c.Config.Alert, logs, true)
 		return err
 	}
 	logs.Add("Backup was moved.")
@@ -162,13 +162,13 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	err = retain.Check(".tar")
 	if err != nil {
 		logs.Error(err)
-		c.SendAlert(c.Config.Alert, logs)
+		c.SendAlert(c.Config.Alert, logs, true)
 		return err
 	}
 
 	logs.Add(fmt.Sprintf("No errors reported backing up '%v' 🎉", container.Name))
 
-	c.SendAlert(c.Config.Alert, logs)
+	c.SendAlert(c.Config.Alert, logs, false)
 	return nil
 }
 
@@ -207,12 +207,12 @@ func (c StartBackupClient) MoveFile(details domain.RunDetails, config domain.Con
 	return nil
 }
 
-func (c StartBackupClient) SendAlert(config domain.ConfigAlert, logs domain.Logs) {
+func (c StartBackupClient) SendAlert(config domain.ConfigAlert, logs domain.Logs, isError bool) {
 	var err error
 
 	if len(config.Discord.Webhooks) >= 1 {
 		log.Print("Sending discord alert")
-		err = c.sendDiscordAlert(config.Discord, logs)
+		err = c.sendDiscordAlert(config.Discord, logs, isError)
 		if err != nil {
 			log.Print(err)
 		}
@@ -227,12 +227,41 @@ func (c StartBackupClient) SendAlert(config domain.ConfigAlert, logs domain.Logs
 	}
 }
 
-func (c StartBackupClient) sendDiscordAlert(config domain.ConfigAlertDiscord, logs domain.Logs) error {
-	m := strings.Join(logs.Message, "\r\n> ")
+func (c StartBackupClient) sendDiscordAlert(config domain.ConfigAlertDiscord, logs domain.Logs, isError bool) error {
+	var color int
 
-	discordAlert := alerts.NewDiscordAlertClient(config.Webhooks, config.Username)
-	discordAlert.ReplaceContent(m)
-	err := discordAlert.Send()
+	discordAlert := alerts.NewDiscordEmbedMessage(config)
+	hostname, err := os.Hostname()
+	if err != nil {
+		return err
+	}
+
+	if isError {
+		color = alerts.DiscordErrorColor
+	} else {
+		color = alerts.DiscordSuccessColor
+	}
+
+	discordAlert.AppendFields(alerts.DiscordEmbedFieldParams{
+		Name:   "Server",
+		Value:  hostname,
+		Inline: true,
+	})
+
+	discordAlert.AppendFields(alerts.DiscordEmbedFieldParams{
+		Name:   "Container",
+		Value:  "Placeholder",
+		Inline: true,
+	})
+
+	m := strings.Join(logs.Message, "\n")
+	discordAlert.SetBody(alerts.DiscordEmbedBodyParams{
+		Title:       "Backup Results",
+		Color:       color,
+		Description: m,
+	})
+
+	err = discordAlert.SendPayload()
 	if err != nil {
 		return err
 	}
@@ -260,7 +289,7 @@ func (c StartBackupClient) postRebootContainer(names []string) {
 		return
 	}
 
-	client := lib.NewDockerCliClient()
+	client := cli.NewDockerCliClient()
 	log.Print("Running Post Reboot requests")
 
 	for _, name := range names {
