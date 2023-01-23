@@ -16,7 +16,7 @@ func TestLocalRetainCountFiles(t *testing.T) {
 	}
 
 	c := dest.NewLocalRetainClient(config, "webdav", 1)
-	_, err := c.CountFiles("retain")
+	_, err := c.CountFiles("retain", "/Users/jamestombleson")
 	if err != nil {
 		t.Error(err)
 	}
@@ -28,7 +28,7 @@ func TestLocalRetainFindOldest(t *testing.T) {
 	}
 
 	c := dest.NewLocalRetainClient(config, "webdav", 1)
-	oldest, err := c.FindOldestFile(".go")
+	oldest, err := c.FindOldestFile(".go", "/Users/jamestombleson")
 	if err != nil {
 		t.Error(err)
 	}
