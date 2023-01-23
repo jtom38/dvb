@@ -15,8 +15,9 @@ var (
 		Short: "Starts running the application.",
 		Long:  "Starts running the application.",
 		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("Version: %v", Version)
 			fmt.Printf("ConfigPath: %v\n", ConfigPath)
-			fmt.Printf("Daemon: %v\n", Daemon)
+			//fmt.Printf("Daemon: %v\n", Daemon)
 
 			_, err := os.Stat(ConfigPath)
 			if err != nil {

@@ -13,9 +13,9 @@ import (
 
 	"github.com/jtom38/dvb/domain"
 	"github.com/jtom38/dvb/services/alerts"
+	"github.com/jtom38/dvb/services/cli"
 	"github.com/jtom38/dvb/services/dest"
 	"github.com/jtom38/dvb/services/discovery"
-	"github.com/jtom38/dvb/services/cli"
 	"github.com/jtom38/dvb/services/targets"
 )
 
@@ -134,7 +134,12 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	err = backupDockerClient.BackupDockerVolume(details, container)
 	if err != nil {
 		logs.Error(err)
-		c.SendAlert(c.Config.Alert, logs, true)
+		c.SendAlert(SendAlertParam{
+			Config:        c.Config.Alert,
+			Logs:          logs,
+			IsError:       true,
+			ContainerName: container.Name,
+		})
 		return err
 	}
 	logs.Add(fmt.Sprintf("Backup was created. '%v.tar'", details.Backup.FileName))
@@ -145,30 +150,78 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	err = c.MoveFile(details, c.Config.Destination)
 	if err != nil {
 		logs.Error(err)
-		c.SendAlert(c.Config.Alert, logs, true)
+		c.SendAlert(SendAlertParam{
+			Config:        c.Config.Alert,
+			Logs:          logs,
+			IsError:       true,
+			ContainerName: container.Name,
+		})
 		return err
 	}
 	logs.Add("Backup was moved.")
 
 	// Check if we need to remove any old backups
 	if c.Config.Destination.Retain.Days == 0 {
+		c.SendAlert(SendAlertParam{
+			Config:        c.Config.Alert,
+			Logs:          logs,
+			IsError:       false,
+			ContainerName: container.Name,
+		})
 		return nil
 	}
 	if c.Config.Destination.Local.Path == "" {
+		c.SendAlert(SendAlertParam{
+			Config:        c.Config.Alert,
+			Logs:          logs,
+			IsError:       false,
+			ContainerName: container.Name,
+		})
 		return nil
 	}
 
+	log.Print("Checking for expired files to remove")
 	retain := dest.NewLocalRetainClient(c.Config.Destination.Local, details.ContainerName, c.Config.Destination.Retain.Days)
-	err = retain.Check(".tar")
-	if err != nil {
-		logs.Error(err)
-		c.SendAlert(c.Config.Alert, logs, true)
-		return err
+	for {
+
+		totalFiles, err := retain.CountFiles(".tar", retain.GetDirectoryPath())
+		if err != nil {
+			logs.Error(err)
+			c.SendAlert(SendAlertParam{
+				Config:        c.Config.Alert,
+				Logs:          logs,
+				IsError:       true,
+				ContainerName: container.Name,
+			})
+			return err
+		}
+
+		if totalFiles <= c.Config.Destination.Retain.Days {
+			break
+		}
+
+		err = retain.Check(".tar")
+		if err != nil {
+			logs.Error(err)
+			c.SendAlert(SendAlertParam{
+				Config:        c.Config.Alert,
+				Logs:          logs,
+				IsError:       true,
+				ContainerName: container.Name,
+			})
+			return err
+		}
+
 	}
 
 	logs.Add(fmt.Sprintf("No errors reported backing up '%v' 🎉", container.Name))
 
-	c.SendAlert(c.Config.Alert, logs, false)
+	c.SendAlert(SendAlertParam{
+		Config:        c.Config.Alert,
+		Logs:          logs,
+		IsError:       false,
+		ContainerName: container.Name,
+	})
 	return nil
 }
 
@@ -207,36 +260,43 @@ func (c StartBackupClient) MoveFile(details domain.RunDetails, config domain.Con
 	return nil
 }
 
-func (c StartBackupClient) SendAlert(config domain.ConfigAlert, logs domain.Logs, isError bool) {
+type SendAlertParam struct {
+	Config        domain.ConfigAlert
+	Logs          domain.Logs
+	IsError       bool
+	ContainerName string
+}
+
+func (c StartBackupClient) SendAlert(params SendAlertParam) {
 	var err error
 
-	if len(config.Discord.Webhooks) >= 1 {
+	if len(params.Config.Discord.Webhooks) >= 1 {
 		log.Print("Sending discord alert")
-		err = c.sendDiscordAlert(config.Discord, logs, isError)
+		err = c.sendDiscordAlert(params)
 		if err != nil {
 			log.Print(err)
 		}
 	}
 
-	if config.Email.Account.Username != "" && config.Email.Account.Password != "" {
+	if params.Config.Email.Account.Username != "" && params.Config.Email.Account.Password != "" {
 		log.Print("Sending email alert")
-		err = c.sendEmailAlert(config.Email, logs)
+		err = c.sendEmailAlert(params.Config.Email, params.Logs)
 		if err != nil {
 			log.Print(err)
 		}
 	}
 }
 
-func (c StartBackupClient) sendDiscordAlert(config domain.ConfigAlertDiscord, logs domain.Logs, isError bool) error {
+func (c StartBackupClient) sendDiscordAlert(params SendAlertParam) error {
 	var color int
 
-	discordAlert := alerts.NewDiscordEmbedMessage(config)
+	discordAlert := alerts.NewDiscordEmbedMessage(params.Config.Discord)
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
 	}
 
-	if isError {
+	if params.IsError {
 		color = alerts.DiscordErrorColor
 	} else {
 		color = alerts.DiscordSuccessColor
@@ -250,11 +310,11 @@ func (c StartBackupClient) sendDiscordAlert(config domain.ConfigAlertDiscord, lo
 
 	discordAlert.AppendFields(alerts.DiscordEmbedFieldParams{
 		Name:   "Container",
-		Value:  "Placeholder",
+		Value:  params.ContainerName,
 		Inline: true,
 	})
 
-	m := strings.Join(logs.Message, "\n")
+	m := strings.Join(params.Logs.Message, "\n")
 	discordAlert.SetBody(alerts.DiscordEmbedBodyParams{
 		Title:       "Backup Results",
 		Color:       color,

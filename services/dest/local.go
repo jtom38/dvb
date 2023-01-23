@@ -115,14 +115,21 @@ type RetainClient struct {
 	config        domain.ConfigDestLocal
 	days          int
 	containerName string
+	dirPath       string
 }
 
 func NewLocalRetainClient(config domain.ConfigDestLocal, containerName string, retainDays int) RetainClient {
+	path := filepath.Join(config.Path, containerName)
 	return RetainClient{
 		config:        config,
 		days:          retainDays,
 		containerName: containerName,
+		dirPath: path,
 	}
+}
+
+func (c RetainClient) GetDirectoryPath() string {
+	return c.dirPath
 }
 
 func (c RetainClient) Check(pattern string) error {
@@ -137,7 +144,7 @@ func (c RetainClient) Check(pattern string) error {
 	}
 
 	// Check the number of files
-	files, err := c.CountFiles(pattern)
+	files, err := c.CountFiles(pattern, c.dirPath)
 	if err != nil {
 		return err
 	}
@@ -153,21 +160,22 @@ func (c RetainClient) Check(pattern string) error {
 	}
 
 	// Find the oldest file to remove
-	file, err := c.FindOldestFile(pattern)
+	file, err := c.FindOldestFile(pattern, c.dirPath)
 	if err != nil {
 		return nil
 	}
 
 	// build the path to the file based on what we know.
-	path := fmt.Sprintf("%v/%v", c.config.Path, file.Name())
+	backupFile := fmt.Sprintf("%v/%v", c.dirPath, file.Name())
 
 	// confirm we have a file the exists
-	_, err = os.Stat(path)
+	_, err = os.Stat(backupFile)
 	if err != nil {
 		return err
 	}
 
-	err = os.Remove(path)
+	log.Printf("> Removing: %v", backupFile)
+	err = os.Remove(backupFile)
 	if err != nil {
 		return err
 	}
@@ -175,16 +183,17 @@ func (c RetainClient) Check(pattern string) error {
 	return nil
 }
 
-func (c RetainClient) FindOldestFile(pattern string) (fs.FileInfo, error) {
+func (c RetainClient) FindOldestFile(pattern, path string) (fs.FileInfo, error) {
 	var oldest fs.FileInfo
 
-	files, err := os.ReadDir(c.config.Path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return oldest, err
 	}
 
 	for _, file := range files {
-		if !strings.Contains(file.Name(), pattern) {
+		name := file.Name()
+		if !strings.Contains(name, pattern) {
 			continue
 		}
 
@@ -207,10 +216,9 @@ func (c RetainClient) FindOldestFile(pattern string) (fs.FileInfo, error) {
 	return oldest, nil
 }
 
-func (c RetainClient) CountFiles(pattern string) (int, error) {
+func (c RetainClient) CountFiles(pattern, path string) (int, error) {
 	found := 0
 
-	path := filepath.Join(c.config.Path, c.containerName)
 	dir, err := os.ReadDir(path)
 	if err != nil {
 		return found, err

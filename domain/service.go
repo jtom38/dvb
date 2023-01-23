@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"fmt"
 	"log"
 )
 
@@ -55,8 +54,5 @@ func (c *Logs) Error(err error) {
 }
 
 func (c Logs) generateMessage(msg string) string {
-	if len(c.Message) == 0 {
-		return fmt.Sprintf("> %v", msg)
-	}
 	return msg
 }
