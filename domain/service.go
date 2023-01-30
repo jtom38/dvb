@@ -38,9 +38,9 @@ type Logs struct {
 	Message []string
 }
 
-func NewLogs() Logs {
+func NewLogs() *Logs {
 	c := Logs{}
-	return c
+	return &c
 }
 
 func (c *Logs) Add(Message string) {
