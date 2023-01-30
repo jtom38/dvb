@@ -42,7 +42,7 @@ func (c StartBackupClient) RunProcess() error {
 	if err != nil {
 		return err
 	}
-	c.SetConfig(config)
+	c.SetConfig(*config)
 
 	// If daemon is requested from param or config check
 	if c.Config.Daemon.Cron != "" {
@@ -136,7 +136,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 		logs.Error(err)
 		c.SendAlert(SendAlertParam{
 			Config:        c.Config.Alert,
-			Logs:          logs,
+			Logs:          *logs,
 			IsError:       true,
 			ContainerName: container.Name,
 		})
@@ -152,7 +152,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 		logs.Error(err)
 		c.SendAlert(SendAlertParam{
 			Config:        c.Config.Alert,
-			Logs:          logs,
+			Logs:          *logs,
 			IsError:       true,
 			ContainerName: container.Name,
 		})
@@ -164,7 +164,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	if c.Config.Destination.Retain.Days == 0 {
 		c.SendAlert(SendAlertParam{
 			Config:        c.Config.Alert,
-			Logs:          logs,
+			Logs:          *logs,
 			IsError:       false,
 			ContainerName: container.Name,
 		})
@@ -173,7 +173,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	if c.Config.Destination.Local.Path == "" {
 		c.SendAlert(SendAlertParam{
 			Config:        c.Config.Alert,
-			Logs:          logs,
+			Logs:          *logs,
 			IsError:       false,
 			ContainerName: container.Name,
 		})
@@ -189,7 +189,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 			logs.Error(err)
 			c.SendAlert(SendAlertParam{
 				Config:        c.Config.Alert,
-				Logs:          logs,
+				Logs:          *logs,
 				IsError:       true,
 				ContainerName: container.Name,
 			})
@@ -205,7 +205,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 			logs.Error(err)
 			c.SendAlert(SendAlertParam{
 				Config:        c.Config.Alert,
-				Logs:          logs,
+				Logs:          *logs,
 				IsError:       true,
 				ContainerName: container.Name,
 			})
@@ -218,27 +218,27 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 
 	c.SendAlert(SendAlertParam{
 		Config:        c.Config.Alert,
-		Logs:          logs,
+		Logs:          *logs,
 		IsError:       false,
 		ContainerName: container.Name,
 	})
 	return nil
 }
 
-func (c StartBackupClient) LoadConfig(path string) (domain.Config, error) {
+func (c StartBackupClient) LoadConfig(path string) (*domain.Config, error) {
 	var config domain.Config
 
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return config, err
+		return &config, err
 	}
 
 	err = yaml.Unmarshal(content, &config)
 	if err != nil {
-		return config, err
+		return &config, err
 	}
 
-	return config, nil
+	return &config, nil
 }
 
 func (c StartBackupClient) MoveFile(details domain.RunDetails, config domain.ConfigDest) error {
