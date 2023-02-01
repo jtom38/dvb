@@ -117,7 +117,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	logs := domain.NewLogs()
 	logs.Add("The container backup has started.")
 
-	details := domain.RunDetails{
+	details := &domain.RunDetails{
 		ContainerName: container.Name,
 	}
 
@@ -131,7 +131,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 
 	// Start the backup process on the container
 	backupDockerClient := targets.NewDockerClient()
-	err = backupDockerClient.BackupDockerVolume(details, container)
+	err = backupDockerClient.BackupDockerVolume(*details, container)
 	if err != nil {
 		logs.Error(err)
 		c.SendAlert(SendAlertParam{
@@ -147,7 +147,7 @@ func (c StartBackupClient) ProcessDockerContainers(container domain.ContainerDoc
 	// run any post reboot requests after a backup was made
 	c.postRebootContainer(container.Post.Reboot)
 
-	err = c.MoveFile(details, c.Config.Destination)
+	err = c.MoveFile(*details, c.Config.Destination)
 	if err != nil {
 		logs.Error(err)
 		c.SendAlert(SendAlertParam{
