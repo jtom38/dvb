@@ -118,9 +118,9 @@ type RetainClient struct {
 	dirPath       string
 }
 
-func NewLocalRetainClient(config domain.ConfigDestLocal, containerName string, retainDays int) RetainClient {
+func NewLocalRetainClient(config domain.ConfigDestLocal, containerName string, retainDays int) *RetainClient {
 	path := filepath.Join(config.Path, containerName)
-	return RetainClient{
+	return &RetainClient{
 		config:        config,
 		days:          retainDays,
 		containerName: containerName,

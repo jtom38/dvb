@@ -24,15 +24,15 @@ type ReconClient struct {
 
 // The recon client goes and check to see what we need before any actions are taken.
 // Once the recon has done its job all the other services will be able run without needing to validate along the way.
-func NewReconClient(config domain.Config) ReconClient {
+func NewReconClient(config domain.Config) *ReconClient {
 	c := ReconClient{
 		config: config,
 	}
-	return c
+	return &c
 }
 
 // Scout is the main logic loop and reports back its findings to
-func (c ReconClient) DockerScout(container domain.ContainerDocker) (domain.RunDetails, error) {
+func (c ReconClient) DockerScout(container domain.ContainerDocker) (*domain.RunDetails, error) {
 	var (
 		err       error
 		res       domain.RunDetails
@@ -46,7 +46,7 @@ func (c ReconClient) DockerScout(container domain.ContainerDocker) (domain.RunDe
 	for {
 		backup, err = c.NewBackupDetails(container.Directory, container.Name, container.Tar.Directory)
 		if err != nil {
-			return res, err
+			return &res, err
 		}
 
 		// make sure that we are able to use the generated name and path
@@ -65,12 +65,12 @@ func (c ReconClient) DockerScout(container domain.ContainerDocker) (domain.RunDe
 			Dest:      c.config.Destination.Local,
 		})
 		if err != nil {
-			return res, err
+			return &res, err
 		}
 		res.Dest.Local = destLocal
 	}
 
-	return res, nil
+	return &res, nil
 }
 
 type GetLocalDestValuesParam struct {

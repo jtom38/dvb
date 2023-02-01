@@ -12,7 +12,7 @@ var (
 	ConfigPath     string
 	Daemon         bool
 	Debug          bool
-	Version        string = "0.0.7"
+	Version        string = "0.0.9"
 
 	root = &cobra.Command{
 		Use:   "dvb",

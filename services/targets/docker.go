@@ -16,11 +16,11 @@ type DockerClient struct {
 	FileExtension string
 }
 
-func NewDockerClient() DockerClient {
+func NewDockerClient() *DockerClient {
 	c := DockerClient{
 		FileExtension: "tar",
 	}
-	return c
+	return &c
 }
 
 // This will return the location of the new file on disk if it was successful
